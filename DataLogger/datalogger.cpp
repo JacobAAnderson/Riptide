@@ -2,6 +2,9 @@
 #include <iostream>
 #include <iomanip>
 #include <fstream>
+#include <vector>
+#include <ctime>
+#include <chrono>
 
 #include "MOOS/libMOOS/App/MOOSApp.h"
 
@@ -9,17 +12,34 @@
 
 using namespace std;
 
-const char fileName[] = "/home/uuuv/Jake/logs/sensorlog.csv";
+
+
+//string fileName = "/home/uuuv/Jake/logs/" + ctime(&now) + "_sensorLog.csv";
 
 class ExampleApp : public CMOOSApp {
 
 	bool OnStartUp(){
 
-		std::ofstream myfile;
-		myfile.open (fileName,std::ios_base::app);
-		myfile << "Sys Time, GPS Fix, GPS Date-Time [yy/MM/dd hh/mm/ss], GPS_LATITUDE [deg], GPS_LONGITUDE [deg], Roll [rad], Pitch [rad], Yaw [rad], Alt Speed of sound [m/s], Altitude [m], Alt-Triger, Atl-Rate, Battery [V] \n";
+		time_t t = time(0);   // get time now
+		struct tm * now = localtime( & t );
+
+		strftime (fileName,80,"/home/uuuv/Jake/logs/%Y%m%d%H%M%S_sensorLog.csv",now);
+
+//		chrono::duration<double> time_ = chrono::system_clock::now();
+
+		cout << "\n\n\n";
+//		cout << time_
+		cout << "\tWriting Log File to:  " << fileName << "\n\n\n";
+		
+		// Write file header
+		ofstream myfile;
+		myfile.open (fileName,ios_base::app);
+//		myfile << "Sys Time";
+		for(int i = 0; i<moosMsgs.size(); i++) myfile << ", " << moosMsgs[i];
+		myfile << endl;
 		myfile.close();
 
+		// Make Sure the varialbe are set to void values
 		ResetVars();
 		
 		return true;
@@ -28,37 +48,9 @@ class ExampleApp : public CMOOSApp {
 
 	bool OnConnectToServer(){
 		
-		Register("GPS_FIX",0.0);
-		Register("GPS_LATITUDE",0.0);
-		Register("GPS_LONGITUDE",0.0);
-		Register("GPS_YEAR",0.0);
-		Register("GPS_MONTH",0.0);
-		Register("GPS_DAY",0.0);
-		Register("GPS_HOUR",0.0);
-		Register("GPS_MINUTE",0.0);
-		Register("GPS_SECOND",0.0);
-		
-		Register("NAV_HEADING",0.0);
-		Register("NAV_ROLL",0.0);
-		Register("NAV_PITCH",0.0);
-		Register("NAV_YAW",0.0);
-		
-		Register("PWR_NOSE_VOLTAGE",0.0);
-		Register("PWR_TAIL_VOLTAGE",0.0);
-		Register("PWR_NOSE_FAULT",0.0);
-		Register("PWR_TAIL_FAULT",0.0);
-		
-		Register("RT_THRUST_SPEED", 0.0);
-		
-		Register("ALT_TRIGGER", 0.0);
-		Register("ALT_PING_RATE", 0.0);
-		Register("ALT_SOUND_SPEED",0.0);
-		Register("ALT_ALTITUDE",0.0);
-		
-		cout << "\n\n---- Datalogger Registered ----\n\n";
-
-		time_ = MOOSLocalTime();
-	
+		for(int i = 0; i<moosMsgs.size(); i++) Register( moosMsgs[i], 0.0); 
+				
+		cout << "\n\n---- Datalogger Registered ----\n\n";	
 		cout << "Start Time: " << MOOSLocalTime() << endl;
 		
 		return true;
@@ -70,57 +62,19 @@ class ExampleApp : public CMOOSApp {
 		cout << "\n\n_________________________________________\n";
 		cout << " Checking Mail\n";
 
-		time_ = MOOSLocalTime();
-		
 		MOOSMSG_LIST::iterator q;
 		for(q=Mail.begin();q!=Mail.end();q++){ cout << q->GetKey();
 			
+			for(int i = 0; i < moosMsgs.size(); i++){
+			
 			// ____ Get GPS ____________________________	
-			if(q->GetKey()=="GPS_FIX")      { gpsFix_       = q->GetDouble(); cout <<": " << q->GetDouble() <<endl;}
-			if(q->GetKey()=="GPS_YEAR")     { gpsYear_      = q->GetDouble(); cout <<": " << q->GetDouble() <<endl;}
-			if(q->GetKey()=="GPS_MONTH")    { gpsMonth_     = q->GetDouble(); cout <<": " << q->GetDouble() <<endl;}
-			if(q->GetKey()=="GPS_DAY")      { gpsDay_       = q->GetDouble(); cout <<": " << q->GetDouble() <<endl;}
-			if(q->GetKey()=="GPS_HOUR")     { gpsHour_      = q->GetDouble(); cout <<": " << q->GetDouble() <<endl;}
-			if(q->GetKey()=="GPS_MINUTE")   { gpsMinute_    = q->GetDouble(); cout <<": " << q->GetDouble() <<endl;}
-			if(q->GetKey()=="GPS_SECOND")   { gpsSecond_    = q->GetDouble(); cout <<": " << q->GetDouble() <<endl;}
-			
-			if(q->GetKey()=="GPS_LATITUDE") { gpsLatitude_  = q->GetDouble(); cout <<": " << q->GetDouble() <<endl;}
-			if(q->GetKey()=="GPS_LONGITUDE"){ gpsLongitude_ = q->GetDouble(); cout <<": " << q->GetDouble() <<endl;}
-						
-			
-			// ____ Record Atitude of the Vehicle _____
-			if(q->GetKey()=="NAV_HEADING"){ heading_  = q->GetDouble(); cout <<": " << q->GetDouble() <<endl;}
-			if(q->GetKey()=="NAV_ROLL")   { role_     = q->GetDouble(); cout <<": " << q->GetDouble() <<endl;}
-			if(q->GetKey()=="NAV_PITCH")  { pitch_    = q->GetDouble(); cout <<": " << q->GetDouble() <<endl;}
-			if(q->GetKey()=="NAV_YAW")    { yaw_      = q->GetDouble(); cout <<": " << q->GetDouble() <<endl;}
-			
-			
-			// ____ Record Battery Voltage ____________
-			if(q->GetKey()=="BATTERY") { battery_ = q->GetDouble(); cout <<": " << q->GetDouble() <<endl;}
-
-
-/*			// ____ Check if Altimeter is running _____
-			if(q->GetKey()=="ALT_TRIGGER")    { Alt_triger_ = q->GetDouble(); cout <<": " << q->GetDouble() <<endl;
-												if(q->GetDouble() != 2.){ Notify("ALT_TRIGGER", 2., MOOSLocalTime());
-																		   cout << "--> Resetting Alt-Trigger \n\n";
-																	     }
-												}
-												
-			if(q->GetKey()=="ALT_PING_RATE")  { Alt_rate_ = q->GetDouble(); cout <<": " << q->GetDouble() <<endl;
-												if(q->GetDouble() != 1.){ Notify("ALT_PING_RATE", 1., MOOSLocalTime());
-																		  cout << "--> Resetting Atl-Ping Rate \n\n";
-																		 }
-												}
-*/		
-
-			// ____ Record Altimeter _______________________
-			if(q->GetKey()=="ALT_SOUND_SPEED"){ Alt_soundSpeed_ = q->GetDouble(); cout <<": " << q->GetDouble() <<endl;}
-			if(q->GetKey()=="ALT_ALTITUDE")   { Altitude_       = q->GetDouble(); cout <<": " << q->GetDouble() <<endl;
-												Write2File();
-												Altitude_ = -1.;	
-												}
+			if(q->GetKey()==moosMsgs[i]) { values[i] = q->GetDouble(); 
+				                           cout <<": " << q->GetDouble() <<endl;
+				                           if(q->GetKey()=="ALT_ALTITUDE") Write2File();
+				                           break;
+				                           }
 			}
-
+		}
 		return true;
 	}
 
@@ -131,80 +85,62 @@ class ExampleApp : public CMOOSApp {
 
 protected:
 
-	void ResetVars(){
-		
-		time_ = 0.0;
-		
-		gpsLongitude_ = 0.;
-		gpsLatitude_  = 0.;
-		gpsYear_      = 0;
-		gpsMonth_     = 0;
-		gpsDay_       = 0;
-		gpsHour_      = -1;
-		gpsMinute_ 	  = -1;
-		gpsSecond_	  = -1;
-		gpsFix_       = -1;
-	
-		role_  = 999.;
-		pitch_ = 999.;
-		yaw_   = 999.;
-		
-		Altitude_       = -1.;
-		Alt_soundSpeed_ =  0.;
-		Alt_triger_     = -1;
-	    Alt_rate_       = -1;
-	    
-	    battery_ = 0.;
-	    
-		}
-
 
 	void Write2File() {
 		
 		cout << "\n\n_________________________________________\n";
 		cout << "Write to file\n";
+		
+//		chrono::duration<double> time_ = chrono::system_clock::now();
+		
+		double time_ = 0.0;
 			 
 		ofstream myfile;
 		myfile.open (fileName, ios_base::app);
-		
-		myfile << time_ <<","<< gpsFix_ << "," << gpsYear_ << "/" << gpsMonth_ << "/" << gpsDay_ << " " << gpsHour_<< ":" << gpsMinute_ << ":" << gpsSecond_;
-		myfile << fixed << setprecision(7) << "," << gpsLatitude_ << "," << gpsLongitude_;
-		myfile << fixed << setprecision(3) << "," << role_ << "," << pitch_ << "," << yaw_;
-		myfile << fixed << setprecision(2) << "," << Alt_soundSpeed_ << "," << Altitude_ << "," << Alt_triger_ << "," << Alt_rate_;
-		myfile << fixed << setprecision(1) << "," << battery_ << endl;
-		
+		myfile << fixed << setprecision(8);
+		myfile << time_;
+		for(int i = 0; i< sizeof(values)/sizeof(values[0]); i++) myfile << "," << values[i];
+		myfile << endl;
 		myfile.close();
 
-		cout << "Time: " << time_ << endl;
+//		cout << "Time: " << std::chrono::system_clock::now() << endl;
 		cout << "__________________________________________\n\n";
 				
 			}
 
 
+	void ResetVars(){ 	
+		for(int i = 0; i< sizeof(values)/sizeof(values[0]); i++) values[i] = -999.9999;
+		}
+
+
 	// ___ Variables ________
-	double time_;
-	
-	double gpsLongitude_;
-	double gpsLatitude_;
-	int gpsYear_;
-	int gpsMonth_;
-	int gpsDay_;
-	int gpsHour_;
-	int gpsMinute_;
-	int gpsSecond_;
-	int gpsFix_;
-	
-	double role_;
-	double pitch_;
-	double yaw_;
-	double heading_;
-	
-	double Altitude_;
-	double Alt_soundSpeed_;
-	int Alt_triger_;
-	int Alt_rate_;
-	
-	double battery_;
+	char fileName [80];
+	double values[24];
+	vector<string> moosMsgs = {"GPS_FIX",
+					   "GPS_YEAR",
+					   "GPS_MONTH",
+					   "GPS_DAY",
+					   "GPS_HOUR",
+					   "GPS_MINUTE",
+					   "GPS_SECOND",
+					   "GPS_LATITUDE", 
+					   "GPS_LONGITUDE",
+					   "NAV_HEADING",
+					   "NAV_ROLL",
+					   "NAV_PITCH",
+					   "NAV_YAW",
+					   "PWR_NOSE_VOLTAGE",
+					   "PWR_TAIL_VOLTAGE",
+					   "PWR_PAYLOAD_VOLTAGE",
+					   "PWR_NOSE_FAULT",
+					   "PWR_TAIL_FAULT",
+					   "PWR_PAYLOAD_FAULT",
+					   "RT_THRUST_SPEED",
+					   "ALT_TRIGGER",
+					   "ALT_PING_RATE",
+					   "ALT_SOUND_SPEED",
+					   "ALT_ALTITUDE"};
 };
 
 
