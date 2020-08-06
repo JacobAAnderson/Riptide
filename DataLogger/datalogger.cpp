@@ -4,7 +4,10 @@
 #include <fstream>
 #include <vector>
 #include <ctime>
-#include <chrono>
+#include <stdio.h>
+#include <sys/time.h>
+#include <time.h>
+#include <math.h>
 
 #include "MOOS/libMOOS/App/MOOSApp.h"
 
@@ -34,7 +37,7 @@ class ExampleApp : public CMOOSApp {
 		// Write file header
 		ofstream myfile;
 		myfile.open (fileName,ios_base::app);
-//		myfile << "Sys Time";
+		myfile << "Sys Time";
 		for(int i = 0; i<moosMsgs.size(); i++) myfile << ", " << moosMsgs[i];
 		myfile << endl;
 		myfile.close();
@@ -52,6 +55,9 @@ class ExampleApp : public CMOOSApp {
 				
 		cout << "\n\n---- Datalogger Registered ----\n\n";	
 		cout << "Start Time: " << MOOSLocalTime() << endl;
+		
+		Notify("RT_SET_ALT_TRIGGER", "auto", MOOSLocalTime());
+		Notify("RT_SET_ALT_PING_RATE", 1, MOOSLocalTime());
 		
 		return true;
 	}
@@ -91,14 +97,27 @@ protected:
 		cout << "\n\n_________________________________________\n";
 		cout << "Write to file\n";
 		
-//		chrono::duration<double> time_ = chrono::system_clock::now();
-		
-		double time_ = 0.0;
+		char buffer[26];
+		int millisec;
+		struct tm* tm_info;
+		struct timeval tv;
+
+		gettimeofday(&tv, NULL);
+
+		millisec = lrint(tv.tv_usec/1000.0); // Round to nearest millisec
+		if (millisec>=1000) { // Allow for rounding up to nearest second
+								millisec -=1000;
+								tv.tv_sec++;
+							}
+
+		tm_info = localtime(&tv.tv_sec);
+
+		strftime(buffer, 26, "%Y:%m:%d %H:%M:%S", tm_info);
 			 
 		ofstream myfile;
 		myfile.open (fileName, ios_base::app);
 		myfile << fixed << setprecision(8);
-		myfile << time_;
+		myfile << buffer;
 		for(int i = 0; i< sizeof(values)/sizeof(values[0]); i++) myfile << "," << values[i];
 		myfile << endl;
 		myfile.close();
