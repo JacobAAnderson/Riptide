@@ -19,26 +19,22 @@ using namespace std;
 
 //string fileName = "/home/uuuv/Jake/logs/" + ctime(&now) + "_sensorLog.csv";
 
-class ExampleApp : public CMOOSApp {
+class DataloggerApp : public CMOOSApp {
 
 	bool OnStartUp(){
 
 		time_t t = time(0);   // get time now
 		struct tm * now = localtime( & t );
 
-		strftime (fileName,80,"/home/uuuv/Jake/logs/%Y%m%d%H%M%S_sensorLog.csv",now);
-
-//		chrono::duration<double> time_ = chrono::system_clock::now();
-
-		cout << "\n\n\n";
-//		cout << time_
-		cout << "\tWriting Log File to:  " << fileName << "\n\n\n";
+		strftime (fileName,80,"/home/uuuv/Jake/logs/%Y%m%d%H%M%S_DataLog.csv",now);
+		
+		cout << "\n\n\nWriting Log File to:  " << fileName << "\n\n\n";
 		
 		// Write file header
 		ofstream myfile;
 		myfile.open (fileName,ios_base::app);
-		myfile << "Sys Time";
-		for(int i = 0; i<moosMsgs.size(); i++) myfile << ", " << moosMsgs[i];
+		myfile << "Sys Time, GPS fix, GPS date-time";
+		for(int i = 7; i<moosMsgs.size(); i++) myfile << ", " << moosMsgs[i];
 		myfile << endl;
 		myfile.close();
 
@@ -64,23 +60,19 @@ class ExampleApp : public CMOOSApp {
 
 
 	bool OnNewMail(MOOSMSG_LIST & Mail){
-		
-		cout << "\n\n_________________________________________\n";
-		cout << " Checking Mail\n";
 
 		MOOSMSG_LIST::iterator q;
-		for(q=Mail.begin();q!=Mail.end();q++){ cout << q->GetKey();
+		for(q=Mail.begin();q!=Mail.end();q++){ 
 			
 			for(int i = 0; i < moosMsgs.size(); i++){
 			
-			// ____ Get GPS ____________________________	
-			if(q->GetKey()==moosMsgs[i]) { values[i] = q->GetDouble(); 
-				                           cout <<": " << q->GetDouble() <<endl;
-				                           if(q->GetKey()=="ALT_ALTITUDE") Write2File();
-				                           break;
-				                           }
+				if(q->GetKey()==moosMsgs[i]) { 
+					values[i] = q->GetDouble(); 
+					if(q->GetKey()=="ALT_ALTITUDE") Write2File();
+					break;
+					}
+				}
 			}
-		}
 		return true;
 	}
 
@@ -94,72 +86,92 @@ protected:
 
 	void Write2File() {
 		
-		cout << "\n\n_________________________________________\n";
-		cout << "Write to file\n";
-		
-		char buffer[26];
-		int millisec;
-		struct tm* tm_info;
-		struct timeval tv;
+		cout << "\nWrite to file -- ";
 
-		gettimeofday(&tv, NULL);
+		gettimeofday(&tv, NULL);                                // Get current time
+    
+        usec = tv.tv_usec;                                      // Get uSeconds
+    
+        tm_info = localtime(&tv.tv_sec);                        // Get current time in local format
 
-		millisec = lrint(tv.tv_usec/1000.0); // Round to nearest millisec
-		if (millisec>=1000) { // Allow for rounding up to nearest second
-								millisec -=1000;
-								tv.tv_sec++;
-							}
-
-		tm_info = localtime(&tv.tv_sec);
-
-		strftime(buffer, 26, "%Y:%m:%d %H:%M:%S", tm_info);
+        strftime(date_buffer, 50, "%F %T", tm_info);           	// Format data and time --> YY/mm/DD HH:MM:SS
+		sprintf(usec_buffer, "%s.%06ld", date_buffer, usec);  	// Add useconds to time --> YY/mm/DD HH:MM:SS.zzzzzz
 			 
-		ofstream myfile;
+		// Write data to file
 		myfile.open (fileName, ios_base::app);
+		myfile << usec_buffer;
+		
+		// Write GPS meta-data
+		myfile << fixed << setprecision(0) 										// No Decimal Point
+		       << "," << values[0] 												// GPS fix
+		       << "," << values[1] << '/' << values[2] << '/' << values[3]  	// GPS Date
+		       << " " << values[4] << ':' << values[5] << ':' << values[6]; 	// GPS Time
+		
+		// Write lat lon
 		myfile << fixed << setprecision(8);
-		myfile << buffer;
-		for(int i = 0; i< sizeof(values)/sizeof(values[0]); i++) myfile << "," << values[i];
+		for(int i = 7; i< 11; i++) myfile << "," << values[i];
+		
+		// Write Other data
+		myfile << fixed << setprecision(3);
+		for(int i = 11; i< sizeof(values)/sizeof(values[0]); i++) myfile << "," << values[i];
+		
+		// End
 		myfile << endl;
 		myfile.close();
 
-//		cout << "Time: " << std::chrono::system_clock::now() << endl;
-		cout << "__________________________________________\n\n";
+		cout << usec_buffer << endl;
 				
 			}
 
 
 	void ResetVars(){ 	
-		for(int i = 0; i< sizeof(values)/sizeof(values[0]); i++) values[i] = -999.9999;
+		for(int i = 0; i< sizeof(values)/sizeof(values[0]); i++) values[i] = std::nan("1");
 		}
 
 
 	// ___ Variables ________
-	char fileName [80];
-	double values[24];
-	vector<string> moosMsgs = {"GPS_FIX",
-					   "GPS_YEAR",
-					   "GPS_MONTH",
-					   "GPS_DAY",
-					   "GPS_HOUR",
-					   "GPS_MINUTE",
-					   "GPS_SECOND",
-					   "GPS_LATITUDE", 
-					   "GPS_LONGITUDE",
-					   "NAV_HEADING",
-					   "NAV_ROLL",
-					   "NAV_PITCH",
-					   "NAV_YAW",
-					   "PWR_NOSE_VOLTAGE",
-					   "PWR_TAIL_VOLTAGE",
-					   "PWR_PAYLOAD_VOLTAGE",
-					   "PWR_NOSE_FAULT",
-					   "PWR_TAIL_FAULT",
-					   "PWR_PAYLOAD_FAULT",
-					   "RT_THRUST_SPEED",
-					   "ALT_TRIGGER",
-					   "ALT_PING_RATE",
-					   "ALT_SOUND_SPEED",
-					   "ALT_ALTITUDE"};
+	ofstream myfile; 			// File object to read and write from files
+	
+	char fileName [80]; 		// Path to Data file 
+	char date_buffer[50];      	// Buffer to format date and time
+	char usec_buffer[50];      	// Buffer to add microseconds to date & time
+	
+	double values[26]; 			// Data Values
+
+	long usec;                  // variable to hold useconds
+	
+	struct tm* tm_info;         // Structures for time values
+	struct timeval tv;
+			
+	vector<string> moosMsgs = {"GPS_FIX",		//  1
+					   "GPS_YEAR",				//  2
+					   "GPS_MONTH", 			//  3
+					   "GPS_DAY", 				//  4
+					   "GPS_HOUR", 				//  5
+					   "GPS_MINUTE", 			//  6
+					   "GPS_SECOND", //_____________7
+					   "GPS_LATITUDE",  		//  8
+					   "GPS_LONGITUDE", 		//  9
+					   "NAV_LAT", 				// 10
+					   "NAV_LONG",	//_____________11
+					   "NAV_HEADING", 			// 12
+					   "NAV_ROLL", 				// 13
+					   "NAV_PITCH", 			// 14
+					   "NAV_YAW", 				// 15
+					   "PWR_NOSE_VOLTAGE",		// 16
+					   "PWR_TAIL_VOLTAGE",		// 17
+					   "PWR_PAYLOAD_VOLTAGE",	// 18
+					   "PWR_NOSE_FAULT",		// 19
+					   "PWR_TAIL_FAULT",		// 20
+					   "PWR_PAYLOAD_FAULT", 	// 21
+					   "RT_THRUST_SPEED", 		// 22
+					   "ALT_TRIGGER",			// 23
+					   "ALT_PING_RATE",			// 24
+					   "ALT_SOUND_SPEED", 		// 25
+					   "ALT_ALTITUDE" 			// 26
+					   };
+
+
 };
 
 
@@ -176,7 +188,7 @@ int main(int argc, char * argv[]){
 	//app name can be the  second free parameter
 	string app_name = P.GetFreeParameter(1, "datalogger");
 
-	ExampleApp App;
+	DataloggerApp App;
 
 	App.Run(app_name,mission_file,argc,argv);
 

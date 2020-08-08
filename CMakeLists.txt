@@ -8,8 +8,9 @@ endif()
 
 CMAKE_MINIMUM_REQUIRED(VERSION 2.8)
 
-add_subdirectory(Sensors)
+# add_subdirectory(Sensors)
 add_subdirectory(DataLogger)
-add_subdirectory(Acoms1)
-add_subdirectory(Acoms2)
+add_subdirectory(Acoms)
+# add_subdirectory(Acoms1)
+# add_subdirectory(Acoms2)
 # add_subdirectory(SerialComms)
