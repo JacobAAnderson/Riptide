@@ -89,13 +89,12 @@ protected:
 		cout << "\nWrite to file -- ";
 
 		gettimeofday(&tv, NULL);                                // Get current time
-    
         usec = tv.tv_usec;                                      // Get uSeconds
-    
         tm_info = localtime(&tv.tv_sec);                        // Get current time in local format
 
-        strftime(date_buffer, 50, "%F %T", tm_info);           	// Format data and time --> YY/mm/DD HH:MM:SS
-		sprintf(usec_buffer, "%s.%06ld", date_buffer, usec);  	// Add useconds to time --> YY/mm/DD HH:MM:SS.zzzzzz
+        strftime(date_buffer, 50, "%F %T", tm_info);            // Format data and time --> YY/mm/DD HH:MM:SS
+        sprintf(usec_buffer, "%s.%06ld", date_buffer, usec);    // Add useconds to time --> YY/mm/DD HH:MM:SS.zzzzzz
+	
 			 
 		// Write data to file
 		myfile.open (fileName, ios_base::app);

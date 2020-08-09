@@ -56,7 +56,7 @@ class AcommsApp : public CMOOSApp {
 
 		for(int i = 0; i<moosMsgs.size(); i++) Register( moosMsgs[i], 0.0); 
 
-		cout << "\n\nAcoms Registered\n\n";
+//		SendAcomms(AcomsMsg());
 
 		return true;
 	}
@@ -73,8 +73,7 @@ class AcommsApp : public CMOOSApp {
 					acoms_ = q -> GetString();
 					cout <<"\nACOMMS_RECV: " << q->GetString() <<endl << endl;		
 					
-					string msg = "Hey Ya";
-					SendAcomms(msg);
+					SendAcomms(AcomsMsg());
 					
 					Write2File();
 					break;
@@ -95,7 +94,8 @@ class AcommsApp : public CMOOSApp {
 
 		now = std::chrono::system_clock::now();
 		std::chrono::duration<double> elapsed_seconds = now - last_rx;
-//		if( elapsed_seconds.count() > 60) SendAcomms("Talk to me"); 
+
+//		if( elapsed_seconds.count() > 60) SendAcomms(AcomsMsg());
 		
 		cout << "Elapsed Time: " << elapsed_seconds.count() << "\r";
 		
@@ -107,19 +107,33 @@ class AcommsApp : public CMOOSApp {
 protected:
 
 	void SendAcomms( string const &data) {
+	
+//		int64_t microseconds = chrono::duration_cast<chrono::microseconds>(chrono::system_clock::now().time_since_epoch()).count();
+//		string trx = to_string(microseconds); // + "," + data;
 		
-		cout <<"\nSend acomms: ";
-					
-		int64_t microseconds = chrono::duration_cast<chrono::microseconds>(chrono::system_clock::now().time_since_epoch()).count();
-    
-		string trx = to_string(microseconds) + ":" + data;
-		
-		Notify("ACOMMS_XMIT", trx, MOOSLocalTime());
+//		Notify("ACOMMS_XMIT", trx,  MOOSLocalTime());
+		Notify("ACOMMS_XMIT", data, MOOSLocalTime());
 	
 		last_rx = chrono::system_clock::now();
-		cout << microseconds << "\t[mico-s]\n";
+		
+		cout <<"\nSend acomms: " << data << endl;
 	    }
-				
+	
+	
+	string AcomsMsg(){
+		char buffer[100];
+		
+		// GPS Latitude, GPS Longitude
+		sprintf(buffer, "%2.8f,%3.7f", values[7], values[8]);
+		
+		// GPS Latitude, GPS Longitude, NAV Heading, NAV Roll, NAV Pitch, NAV Yaw
+//		sprintf(buffer, "%2.8f,%3.7f,%3.1f,%2.1f,%2.1f,%3.1f", values[7], values[8], values[11], values[12], values[13], values[12]);
+		
+		string msg = buffer;
+		
+		return msg;
+	}
+						   			
 
 	void Write2File() { 	// Write data to file
 		
@@ -129,8 +143,9 @@ protected:
 		gettimeofday(&tv, NULL);                                // Get current time
         usec = tv.tv_usec;                                      // Get uSeconds
         tm_info = localtime(&tv.tv_sec);                        // Get current time in local format
-		strftime(date_buffer, 50, "%F %T", tm_info);           	// Format data and time --> YY/mm/DD HH:MM:SS
-		sprintf(usec_buffer, "%s.%06ld", date_buffer, usec);  	// Add useconds to time --> YY/mm/DD HH:MM:SS.zzzzzz
+
+        strftime(date_buffer, 50, "%F %T", tm_info);            // Format data and time --> YY/mm/DD HH:MM:SS
+        sprintf(usec_buffer, "%s.%06ld", date_buffer, usec);    // Add useconds to time --> YY/mm/DD HH:MM:SS.zzzzzz
 			 
 		
 		// Write data to file
@@ -148,8 +163,10 @@ protected:
 		for(int i = 7; i< 11; i++) myfile << "," << values[i];
 		
 		// Write Other data
-//		myfile << fixed << setprecision(3);
-//		for(int i = 11; i< sizeof(values)/sizeof(values[0]); i++) myfile << "," << values[i];
+		myfile << fixed << setprecision(3);
+		for(int i = 11; i< sizeof(values)/sizeof(values[0]); i++) myfile << "," << values[i];
+		
+		myfile << "," << acoms_;
 		
 		// End
 		myfile << endl;
@@ -194,7 +211,11 @@ protected:
 					   "GPS_LONGITUDE",			//  9
 					   "NAV_LAT", 				// 10
 					   "NAV_LONG",  //_____________11
-					   "ACOMMS_RECV" 			// 12
+					   "NAV_HEADING", 			// 12
+					   "NAV_ROLL", 				// 13
+					   "NAV_PITCH",				// 14
+					   "NAV_YAW",				// 15
+					   "ACOMMS_RECV" 			// 16
 					   };
 					  
 	std::chrono::time_point<std::chrono::system_clock> last_rx, now; 	// Timepoints
