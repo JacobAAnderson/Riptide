@@ -47,13 +47,18 @@ class DataloggerApp : public CMOOSApp {
 
 	bool OnConnectToServer(){
 		
-		for(int i = 0; i<moosMsgs.size(); i++) Register( moosMsgs[i], 0.0); 
-				
-		cout << "\n\n---- Datalogger Registered ----\n\n";	
-		cout << "Start Time: " << MOOSLocalTime() << endl;
+		// Register for MOOS mesages that we want to log
+		for(int i = 0; i<moosMsgs.size(); i++) Register( moosMsgs[i], 0.0);
 		
+		// Keep an eye on the altimiter to make sure it stays on
+		Register( "RT_SET_ALT_TRIGGER", 0.0); 
+		
+		// Turn on altimeter at 1Hz ping rate
 		Notify("RT_SET_ALT_TRIGGER", "auto", MOOSLocalTime());
 		Notify("RT_SET_ALT_PING_RATE", 1, MOOSLocalTime());
+		
+		cout << "\n\n---- Datalogger Registered ----\n\n";	
+		cout << "Start Time: " << MOOSLocalTime() << endl;
 		
 		return true;
 	}
@@ -64,6 +69,18 @@ class DataloggerApp : public CMOOSApp {
 		MOOSMSG_LIST::iterator q;
 		for(q=Mail.begin();q!=Mail.end();q++){ 
 			
+			// Make sure the altimiter stayes On.
+			if(q->GetKey()== "RT_SET_ALT_TRIGGER"){
+				if(q->GetString() != "auto"){
+					cout << "\n\n --------- Reset Alt Triger -----------------------------\n\n";
+					Notify("RT_SET_ALT_TRIGGER", "auto", MOOSLocalTime());
+					Notify("RT_SET_ALT_PING_RATE", 1, MOOSLocalTime());
+					}
+				continue;
+				}
+			
+			
+			// Record variables of interest
 			for(int i = 0; i < moosMsgs.size(); i++){
 			
 				if(q->GetKey()==moosMsgs[i]) { 

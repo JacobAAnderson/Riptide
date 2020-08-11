@@ -34,7 +34,9 @@ class AcommsApp : public CMOOSApp {
 		ofstream myfile;
 		myfile.open (fileName,ios_base::app);
 		myfile << "Sys Time, GPS fix, GPS date-time";
-		for(int i = 7; i<moosMsgs.size(); i++) myfile << ", " << moosMsgs[i];
+		for(int i = 7; i< (moosMsgs.size()-1); i++) myfile << ", " << moosMsgs[i];
+		myfile << ", ACOMMS_XMIT";
+		myfile << ", " << moosMsgs[ moosMsgs.size()-1 ];
 		myfile << endl;
 		myfile.close();
 
@@ -48,6 +50,10 @@ class AcommsApp : public CMOOSApp {
 		SetAppFreq(Hz,0.0);
 //		SetIterateMode(REGULAR_ITERATE_AND_COMMS_DRIVEN_MAIL);
 
+		cout << "\n\n______________________________________\n"
+		     << moosMsgs[ moosMsgs.size()-1 ]
+		     << "\n_______________________________________\n\n";
+
 		return true;
 	}
 
@@ -56,7 +62,7 @@ class AcommsApp : public CMOOSApp {
 
 		for(int i = 0; i<moosMsgs.size(); i++) Register( moosMsgs[i], 0.0); 
 
-//		SendAcomms(AcomsMsg());
+		Notify("RT_SET_PAYLOAD_POWER", 1, MOOSLocalTime());
 
 		return true;
 	}
@@ -69,16 +75,18 @@ class AcommsApp : public CMOOSApp {
 			
 			for(int i = 0; i < moosMsgs.size(); i++){
 			
-				if(q->GetKey()=="ACOMMS_RECV"){
-					acoms_ = q -> GetString();
+				// Check for recived Acomms
+				if(q->GetKey() == moosMsgs[ moosMsgs.size()-1 ]){	
+					acoms_rx = q -> GetString();
 					cout <<"\nACOMMS_RECV: " << q->GetString() <<endl << endl;		
 					
-					SendAcomms(AcomsMsg());
+					SendAcomms("R");
 					
-					Write2File();
+					Write2File(acoms_rx, "\0");
 					break;
 					}
-							
+				
+				// Keep Track of the rest of the maill		
 				else if(q->GetKey()==moosMsgs[i]) {
 					values[i] = q->GetDouble(); 
 				    break;
@@ -89,15 +97,14 @@ class AcommsApp : public CMOOSApp {
 	}
 
 
-
 	bool Iterate(){
 
 		now = std::chrono::system_clock::now();
 		std::chrono::duration<double> elapsed_seconds = now - last_rx;
 
-//		if( elapsed_seconds.count() > 60) SendAcomms(AcomsMsg());
+		if(values[15] ==1. && elapsed_seconds.count() > 60) SendAcomms("I");
 		
-		cout << "Elapsed Time: " << elapsed_seconds.count() << "\r";
+		cout << "Modem ID: " << values[15] << "\tElapsed Time: " << elapsed_seconds.count() << "\r";
 		
 		return true;
 	}
@@ -108,15 +115,18 @@ protected:
 
 	void SendAcomms( string const &data) {
 	
-//		int64_t microseconds = chrono::duration_cast<chrono::microseconds>(chrono::system_clock::now().time_since_epoch()).count();
-//		string trx = to_string(microseconds); // + "," + data;
+		int64_t microseconds = chrono::duration_cast<chrono::microseconds>(chrono::system_clock::now().time_since_epoch()).count();
+		string trx = to_string(microseconds) + ";" + data;		
+		Notify("ACOMMS_XMIT", trx,  MOOSLocalTime());
+		Write2File("\0", trx);
+		cout <<"\nSend acomms: " << trx << endl;
+
+//		Notify("ACOMMS_XMIT", data, MOOSLocalTime());
+//		cout <<"\nSend acomms: " << data << endl;
+//		Write2File("\0", data);
 		
-//		Notify("ACOMMS_XMIT", trx,  MOOSLocalTime());
-		Notify("ACOMMS_XMIT", data, MOOSLocalTime());
-	
 		last_rx = chrono::system_clock::now();
 		
-		cout <<"\nSend acomms: " << data << endl;
 	    }
 	
 	
@@ -135,7 +145,7 @@ protected:
 	}
 						   			
 
-	void Write2File() { 	// Write data to file
+	void Write2File(string const & AcommsRecive, string const &AcommsTransmit) { 	// Write data to file
 		
 		cout << "\nWrite to file -- ";
 
@@ -166,7 +176,8 @@ protected:
 		myfile << fixed << setprecision(3);
 		for(int i = 11; i< sizeof(values)/sizeof(values[0]); i++) myfile << "," << values[i];
 		
-		myfile << "," << acoms_;
+		myfile << "," << AcommsTransmit 
+		       << "," << AcommsRecive;
 		
 		// End
 		myfile << endl;
@@ -180,7 +191,7 @@ protected:
 	void ResetVars(){ 	// Initialize / Resed data values
 		for(int i = 0; i< sizeof(values)/sizeof(values[0]); i++) values[i] = std::nan("1");
 		last_rx = std::chrono::system_clock::now();
-		acoms_ = "\0";
+		acoms_rx = "\0";
 		}
 
 
@@ -191,31 +202,34 @@ protected:
 	char date_buffer[50];      	// Buffer to format date and time
 	char usec_buffer[50];      	// Buffer to add microseconds to date & time
 	
-	double values[26]; 			// Data Values
+	double values[16]; 			// Data Values
 
 	long usec;                  // variable to hold useconds
 	
 	struct tm* tm_info;         // Structures for time values
 	struct timeval tv;
 			
-	string acoms_; 				// String for recived acomms message
+	string acoms_rx; 	 		// String for recived acomms message
 	
-	vector<string> moosMsgs = {"GPS_FIX", 		//  1 		MOOS messages
-					   "GPS_YEAR", 				//  2
-					   "GPS_MONTH", 			//  3
-					   "GPS_DAY", 				//  4
-					   "GPS_HOUR", 				//  5
-					   "GPS_MINUTE", 			//  6
-					   "GPS_SECOND",  //____________7
-					   "GPS_LATITUDE",  		//  8
-					   "GPS_LONGITUDE",			//  9
-					   "NAV_LAT", 				// 10
-					   "NAV_LONG",  //_____________11
-					   "NAV_HEADING", 			// 12
-					   "NAV_ROLL", 				// 13
-					   "NAV_PITCH",				// 14
-					   "NAV_YAW",				// 15
-					   "ACOMMS_RECV" 			// 16
+	vector<string> moosMsgs = {	// MOOS messages
+		"GPS_FIX", 			//  1
+		"GPS_YEAR", 		//  2
+		"GPS_MONTH", 		//  3
+		"GPS_DAY", 			//  4
+		"GPS_HOUR", 		//  5
+		"GPS_MINUTE", 		//  6
+		"GPS_SECOND",  //_______7
+		"GPS_LATITUDE",  	//  8
+		"GPS_LONGITUDE",	//  9
+		"NAV_LAT", 			// 10
+		"NAV_LONG",  //________11
+		"NAV_HEADING", 		// 12
+		"NAV_ROLL", 		// 13
+		"NAV_PITCH",		// 14
+		"NAV_YAW",			// 15
+		"MODEM_ID", 		// 16
+		"ACOMMS_RECV_CSV",	// 17
+
 					   };
 					  
 	std::chrono::time_point<std::chrono::system_clock> last_rx, now; 	// Timepoints
