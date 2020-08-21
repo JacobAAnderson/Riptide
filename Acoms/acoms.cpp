@@ -33,7 +33,7 @@ class AcommsApp : public CMOOSApp {
 
 		ofstream myfile;
 		myfile.open (fileName,ios_base::app);
-		myfile << "Sys Time, GPS fix, GPS date-time";
+		myfile << "Sys Time, Mission, GPS fix, GPS date-time";
 		for(int i = 7; i< (moosMsgs.size()-1); i++) myfile << ", " << moosMsgs[i];
 		myfile << ", ACOMMS_XMIT";
 		myfile << ", " << moosMsgs[ moosMsgs.size()-1 ];
@@ -62,6 +62,8 @@ class AcommsApp : public CMOOSApp {
 
 		for(int i = 0; i<moosMsgs.size(); i++) Register( moosMsgs[i], 0.0); 
 
+		Register("PLOGGER_CMD",0.0);
+	
 		Notify("RT_SET_PAYLOAD_POWER", 1, MOOSLocalTime());
 
 		return true;
@@ -73,24 +75,30 @@ class AcommsApp : public CMOOSApp {
 		MOOSMSG_LIST::iterator q;
 		for(q=Mail.begin();q!=Mail.end();q++){ 
 			
-			for(int i = 0; i < moosMsgs.size(); i++){
-			
-				// Check for recived Acomms
-				if(q->GetKey() == moosMsgs[ moosMsgs.size()-1 ]){	
-					acoms_rx = q -> GetString();
-					cout <<"\nACOMMS_RECV: " << q->GetString() <<endl << endl;		
+			// Check for recived Acomms
+			if(q->GetKey() == moosMsgs[ moosMsgs.size()-1 ]){	
+				acoms_rx = q -> GetString();
+				cout <<"\nACOMMS_RECV: " << q->GetString() <<endl << endl;		
 					
-					SendAcomms("R");
+				SendAcomms("R");
 					
-					Write2File(acoms_rx, "\0");
-					break;
+				Write2File(acoms_rx, "\0");
+				continue;
 					}
+			
+			// Check for PLOGGER_CMD --> what mission is being run
+			if (q->GetKey() == "PLOGGER_CMD"){ 
+				plog_cmd = q->GetString(); 
+				continue;} 
 				
-				// Keep Track of the rest of the maill		
-				else if(q->GetKey()==moosMsgs[i]) {
+			// Keep Track of the rest of the maill
+			for(int i = 0; i < moosMsgs.size(); i++){
+						
+				if(q->GetKey()==moosMsgs[i]) {
 					values[i] = q->GetDouble(); 
 				    break;
 				    }
+				
 			}
 		}
 		return true;
@@ -160,7 +168,8 @@ protected:
 		
 		// Write data to file
 		myfile.open (fileName, ios_base::app);
-		myfile << usec_buffer;
+		myfile << usec_buffer
+			   << "," << plog_cmd;
 		
 		// Write GPS meta-data
 		myfile << fixed << setprecision(0) 										// No Decimal Point
@@ -192,6 +201,7 @@ protected:
 		for(int i = 0; i< sizeof(values)/sizeof(values[0]); i++) values[i] = std::nan("1");
 		last_rx = std::chrono::system_clock::now();
 		acoms_rx = "\0";
+		plog_cmd = "\0";
 		}
 
 
@@ -209,7 +219,7 @@ protected:
 	struct tm* tm_info;         // Structures for time values
 	struct timeval tv;
 			
-	string acoms_rx; 	 		// String for recived acomms message
+	string acoms_rx, plog_cmd; 	// String for recived acomms message and plogger cmd
 	
 	vector<string> moosMsgs = {	// MOOS messages
 		"GPS_FIX", 			//  1

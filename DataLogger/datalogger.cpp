@@ -33,7 +33,7 @@ class DataloggerApp : public CMOOSApp {
 		// Write file header
 		ofstream myfile;
 		myfile.open (fileName,ios_base::app);
-		myfile << "Sys Time, GPS fix, GPS date-time";
+		myfile << "Sys Time, Mission, GPS fix, GPS date-time";
 		for(int i = 7; i<moosMsgs.size(); i++) myfile << ", " << moosMsgs[i];
 		myfile << endl;
 		myfile.close();
@@ -49,6 +49,9 @@ class DataloggerApp : public CMOOSApp {
 		
 		// Register for MOOS mesages that we want to log
 		for(int i = 0; i<moosMsgs.size(); i++) Register( moosMsgs[i], 0.0);
+		
+		// Get Mission Info
+		Register("PLOGGER_CMD",0.0);
 		
 		// Keep an eye on the altimiter to make sure it stays on
 		Register( "RT_SET_ALT_TRIGGER", 0.0); 
@@ -69,6 +72,8 @@ class DataloggerApp : public CMOOSApp {
 		MOOSMSG_LIST::iterator q;
 		for(q=Mail.begin();q!=Mail.end();q++){ 
 			
+			cout << q->GetKey() << "\n";
+			
 			// Make sure the altimiter stayes On.
 			if(q->GetKey()== "RT_SET_ALT_TRIGGER"){
 				if(q->GetString() != "auto"){
@@ -79,6 +84,10 @@ class DataloggerApp : public CMOOSApp {
 				continue;
 				}
 			
+			// Check for PLOGGER_CMD --> what mission is being run
+			if (q->GetKey() == "PLOGGER_CMD"){ 
+				plog_cmd = q->GetString(); 
+				continue;} 
 			
 			// Record variables of interest
 			for(int i = 0; i < moosMsgs.size(); i++){
@@ -115,7 +124,8 @@ protected:
 			 
 		// Write data to file
 		myfile.open (fileName, ios_base::app);
-		myfile << usec_buffer;
+		myfile << usec_buffer
+			   << "," << plog_cmd;
 		
 		// Write GPS meta-data
 		myfile << fixed << setprecision(0) 										// No Decimal Point
@@ -142,6 +152,7 @@ protected:
 
 	void ResetVars(){ 	
 		for(int i = 0; i< sizeof(values)/sizeof(values[0]); i++) values[i] = std::nan("1");
+		plog_cmd = "\0";
 		}
 
 
@@ -158,7 +169,9 @@ protected:
 	
 	struct tm* tm_info;         // Structures for time values
 	struct timeval tv;
-			
+		
+	string plog_cmd; 			// plogger_cmd msgs
+		
 	vector<string> moosMsgs = {"GPS_FIX",		//  1
 					   "GPS_YEAR",				//  2
 					   "GPS_MONTH", 			//  3
