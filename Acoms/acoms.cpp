@@ -33,11 +33,12 @@ class AcommsApp : public CMOOSApp {
 
 		ofstream myfile;
 		myfile.open (fileName,ios_base::app);
-		myfile << "Sys Time, Mission, GPS fix, GPS date-time";
+		myfile << "Sys_Time, Mission, GPS_fix, GPS_dateTime";
 		for(int i = 7; i< (moosMsgs.size()-1); i++) myfile << ", " << moosMsgs[i];
-		myfile << ", ACOMMS_XMIT";
-		myfile << ", " << moosMsgs[ moosMsgs.size()-1 ];
-		myfile << endl;
+		myfile << ", ACOMMS_XMIT"
+		       << ", " << moosMsgs[ moosMsgs.size()-1 ]
+		       << ", src, dest, msg"
+		       << endl;
 		myfile.close();
 
 
@@ -110,7 +111,7 @@ class AcommsApp : public CMOOSApp {
 		now = std::chrono::system_clock::now();
 		std::chrono::duration<double> elapsed_seconds = now - last_rx;
 
-		if(values[15] ==1. && elapsed_seconds.count() > 60) SendAcomms("I");
+		if(values[15] == 1. && elapsed_seconds.count() > 60) SendAcomms("I");
 		
 		cout << "Modem ID: " << values[15] << "\tElapsed Time: " << elapsed_seconds.count() << "\r";
 		

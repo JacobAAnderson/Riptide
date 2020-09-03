@@ -33,7 +33,7 @@ class DataloggerApp : public CMOOSApp {
 		// Write file header
 		ofstream myfile;
 		myfile.open (fileName,ios_base::app);
-		myfile << "Sys Time, Mission, GPS fix, GPS date-time";
+		myfile << "Sys_Time, Mission, GPS_fix, GPS_dateTime";
 		for(int i = 7; i<moosMsgs.size(); i++) myfile << ", " << moosMsgs[i];
 		myfile << endl;
 		myfile.close();
