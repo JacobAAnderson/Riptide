@@ -1,0 +1,87 @@
+ServerHost = localhost
+ServerPort = 9000
+Community  = uuuv
+
+GlobalLogPath = "/media/store/data/"
+
+ProcessConfig = pAcommsHandler
+{
+    set {RT_SET_PAYLOAD_POWER, 1}  // Turn on payload Power??
+
+    common {
+        log: true
+        verbosity: DEBUG3
+        show_gui: false
+        initializer { type: INI_DOUBLE moos_var: "STATUS_DESTINATION" dval: 0 }
+        initializer { type: INI_STRING moos_var: "STATUS_REPORT_OUT"
+          sval: "x=150,y=200,speed=1.4,heading=125"
+          }
+        initializer { type: INI_STRING moos_var: "DEPTH" sval: "depth:=23" }
+    }
+    modem_id: 1
+    driver_type: DRIVER_WHOI_MICROMODEM
+    driver_cfg {
+        connection_type: CONNECTION_SERIAL
+	      line_delimiter: "\r\n"
+	      serial_port: "/dev/ttyS1"
+	      serial_baud: 19200
+	      reconnect_interval: 10
+	      raw_log: "/tmp/modem_log_%1%.raw"
+        [micromodem.protobuf.Config.reset_nvram]: true
+    }
+    mac_cfg {
+        type: MAC_FIXED_DECENTRALIZED
+        slot { src: 1 type: DATA slot_seconds: 10 }
+        slot { src: 2 type: DATA slot_seconds: 10 }
+    }
+    queue_cfg {
+        message_entry {
+            protobuf_name: "goby.moos.protobuf.RiptideMsg"
+            ack: false
+            blackout_time: 10
+            ttl: 300
+            value_base: 1.5
+            role { type: SOURCE_ID field: "src" }
+            role { type: DESTINATION_ID field: "dest" }
+            role { type: TIMESTAMP field: "timestamp" }
+        }
+    }
+    translator_entry {
+        protobuf_name: "goby.moos.protobuf.RiptideMsg"
+        trigger { type: TRIGGER_PUBLISH moos_var: "ACOMMS_XMIT" }
+        create {
+            technique: TECHNIQUE_FORMAT
+            moos_var: "DB_TIME"
+            format: "%1%"
+        }
+        create {
+            technique: TECHNIQUE_FORMAT
+            moos_var: "MODEM_ID"
+            format: "%2%"
+        }
+        create {
+            technique: TECHNIQUE_FORMAT
+            moos_var: "STATUS_DESTINATION"
+            format: "%3%"
+        }
+        create {
+            technique: TECHNIQUE_FORMAT
+            moos_var: "ACOMMS_XMIT"
+            format: "%10%"
+        }
+        publish {
+            technique: TECHNIQUE_COMMA_SEPARATED_KEY_EQUALS_VALUE_PAIRS
+            moos_var: "ACOMMS_RECV_CSV"
+        }
+        publish {
+            technique: TECHNIQUE_PREFIXED_PROTOBUF_TEXT_FORMAT
+            moos_var: "ACOMMS_RECV_PB"
+        }
+        publish {
+            technique: TECHNIQUE_FORMAT
+            moos_var: "ACOMMS_RECV"
+            format: "%10%"
+        }
+    }
+    load_shared_library: "libriptide_protobuf.so"
+}
