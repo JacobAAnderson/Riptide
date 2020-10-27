@@ -16,9 +16,6 @@
 using namespace std;
 
 
-
-//string fileName = "/home/uuuv/Jake/logs/" + ctime(&now) + "_sensorLog.csv";
-
 class DataloggerApp : public CMOOSApp {
 
 	bool OnStartUp(){
@@ -26,9 +23,9 @@ class DataloggerApp : public CMOOSApp {
 		time_t t = time(0);   // get time now
 		struct tm * now = localtime( & t );
 
-		strftime (fileName,80,"/home/uuuv/Jake/logs/%Y%m%d%H%M%S_DataLog.csv",now);
+		strftime (fileName,80,"/home/uuuv/Jake/logs/%Y-%m-%d_%H%M%S_DataLog.csv",now);
 		
-		cout << "\n\n\nWriting Log File to:  " << fileName << "\n\n\n";
+		cout << "Writing Log File to: " << fileName;
 		
 		// Write file header
 		ofstream myfile;
@@ -60,8 +57,8 @@ class DataloggerApp : public CMOOSApp {
 		Notify("RT_SET_ALT_TRIGGER", "auto", MOOSLocalTime());
 		Notify("RT_SET_ALT_PING_RATE", 1, MOOSLocalTime());
 		
-		cout << "\n\n---- Datalogger Registered ----\n\n";	
-		cout << "Start Time: " << MOOSLocalTime() << endl;
+		cout << "Datalogger Registered, Time: " << MOOSLocalTime() << endl
+		     << "RT_SET_ALT_TRIGGER set to auto\n" << endl;
 		
 		return true;
 	}
@@ -72,14 +69,14 @@ class DataloggerApp : public CMOOSApp {
 		MOOSMSG_LIST::iterator q;
 		for(q=Mail.begin();q!=Mail.end();q++){ 
 			
-			cout << q->GetKey() << "\n";
+			// cout << q->GetKey() << "\n";
 			
 			// Make sure the altimiter stayes On.
 			if(q->GetKey()== "RT_SET_ALT_TRIGGER"){
 				if(q->GetString() != "auto"){
-					cout << "\n\n --------- Reset Alt Triger -----------------------------\n\n";
 					Notify("RT_SET_ALT_TRIGGER", "auto", MOOSLocalTime());
 					Notify("RT_SET_ALT_PING_RATE", 1, MOOSLocalTime());
+					cout << "RT_SET_ALT_TRIGGER set to auto" << endl;
 					}
 				continue;
 				}
@@ -112,7 +109,7 @@ protected:
 
 	void Write2File() {
 		
-		cout << "\nWrite to file -- ";
+		// cout << "\nWrite to file -- ";
 
 		gettimeofday(&tv, NULL);                                // Get current time
         usec = tv.tv_usec;                                      // Get uSeconds
@@ -145,7 +142,7 @@ protected:
 		myfile << endl;
 		myfile.close();
 
-		cout << usec_buffer << endl;
+		// cout << usec_buffer << endl;
 				
 			}
 
@@ -163,7 +160,7 @@ protected:
 	char date_buffer[50];      	// Buffer to format date and time
 	char usec_buffer[50];      	// Buffer to add microseconds to date & time
 	
-	double values[26]; 			// Data Values
+	double values[29]; 			// Data Values
 
 	long usec;                  // variable to hold useconds
 	
@@ -187,17 +184,20 @@ protected:
 					   "NAV_ROLL", 				// 13
 					   "NAV_PITCH", 			// 14
 					   "NAV_YAW", 				// 15
-					   "PWR_NOSE_VOLTAGE",		// 16
-					   "PWR_TAIL_VOLTAGE",		// 17
-					   "PWR_PAYLOAD_VOLTAGE",	// 18
-					   "PWR_NOSE_FAULT",		// 19
-					   "PWR_TAIL_FAULT",		// 20
-					   "PWR_PAYLOAD_FAULT", 	// 21
-					   "RT_THRUST_SPEED", 		// 22
-					   "ALT_TRIGGER",			// 23
-					   "ALT_PING_RATE",			// 24
-					   "ALT_SOUND_SPEED", 		// 25
-					   "ALT_ALTITUDE" 			// 26
+					   "PS_BAD_PRESSURE", 		// 16
+					   "PS_BAD_TEMP", 			// 17
+					   "PWR_NOSE_VOLTAGE",		// 18
+					   "PWR_TAIL_VOLTAGE",		// 19
+					   "PWR_PAYLOAD_VOLTAGE",	// 20
+					   "PWR_NOSE_FAULT",		// 21
+					   "PWR_TAIL_FAULT",		// 22
+					   "PWR_PAYLOAD_FAULT", 	// 23
+					   "RT_THRUST_SPEED", 		// 24
+					   "ALT_TRIGGER",			// 25
+					   "ALT_PING_RATE",			// 26
+					   "ALT_SOUND_SPEED", 		// 27
+					   "ALT_RANGE",				// 28
+					   "ALT_ALTITUDE" 			// 29 !! Change values size !!
 					   };
 
 

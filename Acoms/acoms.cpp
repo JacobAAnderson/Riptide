@@ -29,7 +29,7 @@ class AcommsApp : public CMOOSApp {
 		time_t t = time(0);   // get time now
 		struct tm * now = localtime( & t );
 
-		strftime (fileName,80,"/home/uuuv/Jake/logs/%Y%m%d%H%M%S_acommsLog.csv",now);
+		strftime (fileName,80,"/home/uuuv/Jake/logs/%Y-%m-%d_%H%M%S_acommsLog.csv",now);
 
 		ofstream myfile;
 		myfile.open (fileName,ios_base::app);
@@ -213,7 +213,7 @@ protected:
 	char date_buffer[50];      	// Buffer to format date and time
 	char usec_buffer[50];      	// Buffer to add microseconds to date & time
 	
-	double values[16]; 			// Data Values
+	double values[17]; 			// Data Values
 
 	long usec;                  // variable to hold useconds
 	
@@ -239,7 +239,8 @@ protected:
 		"NAV_PITCH",		// 14
 		"NAV_YAW",			// 15
 		"MODEM_ID", 		// 16
-		"ACOMMS_RECV_CSV",	// 17
+		"RT_THRUST_SPEED",  // 17
+		"ACOMMS_RECV_CSV",	// 18
 
 					   };
 					  
