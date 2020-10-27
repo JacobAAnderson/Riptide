@@ -26,7 +26,10 @@ chmod 444 Acoms/*acommsLog.csv
 echo " "
 echo "--> Getting Data Logs"
 scp uuuv@$ip:Jake/logs/*DataLog.csv Data/
+scp uuuv@$ip:Jake/logs/*DataLogger_output.txt Data/
+
 chmod 444 Data/*DataLog.csv
+chmod 444 Data/*DataLogger_output.txt
 echo " "
 echo " "
 echo "Done"
